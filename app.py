@@ -3,197 +3,148 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-# Page Configuration
+# Page configuration
 st.set_page_config(
-    page_title="Model Predictor", page_icon="🤖", layout="centered"
+    page_title="Gradient Booster Classifier",
+    page_icon="🚀",
+    layout="centered"
 )
 
-# Custom CSS for UI styling, custom cards, and soft shadow effects
-st.markdown(
-    """
-    <style>
-    /* Main Background Accent */
+# Custom CSS for UI styling & drop-shadow effects
+custom_css = """
+<style>
+    /* Main Background */
     .stApp {
         background-color: #f8f9fa;
     }
-
-    /* Container Card with Elevation/Shadow Effects */
-    .css-card {
+    
+    /* Main Container Box with Shadow */
+    .main-card {
         background-color: #ffffff;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.03);
         margin-bottom: 2rem;
-        border: 1px solid #e9ecef;
     }
-
-    /* Input Card Container */
-    div[data-testid="stVerticalBlock"] > div:has(div.input-anchor) {
-        background-color: #ffffff;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        border: 1px solid #edf2f7;
-    }
-
-    /* Custom Header Styling */
-    .main-title {
+    
+    /* Header Styling */
+    .title-text {
         color: #1e293b;
+        font-family: 'Inter', sans-serif;
         font-weight: 700;
-        text-align: center;
         margin-bottom: 0.5rem;
     }
     
-    .sub-title {
+    .subtitle-text {
         color: #64748b;
-        text-align: center;
-        font-size: 1.1rem;
+        font-size: 1rem;
         margin-bottom: 2rem;
     }
 
-    /* Prediction Output Box */
-    .result-card {
-        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        text-align: center;
-        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
-        margin-top: 1.5rem;
-    }
-
-    /* Styled Buttons */
-    .stButton>button {
+    /* Style Streamlit Buttons with Soft Shadows */
+    div.stButton > button {
         width: 100%;
         background-color: #4f46e5;
         color: white;
-        border: none;
         border-radius: 8px;
         padding: 0.6rem 1rem;
         font-weight: 600;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        transition: all 0.2s ease-in-out;
     }
     
-    .stButton>button:hover {
+    div.stButton > button:hover {
         background-color: #4338ca;
-        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+        color: white;
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
         transform: translateY(-1px);
     }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
 
+    /* Prediction Result Box with Shadow */
+    .result-card {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: bold;
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+        margin-top: 1.5rem;
+    }
+</style>
+"""
 
-# Load the trained GradientBoostingClassifier model
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# Function to load model
 @st.cache_resource
 def load_model():
-    with open("GreadientBooster.pkl", "rb") as file:
-        model = pickle.load(file)
+    with open("GreadientBooster.pkl", "rb") as f:
+        model = pickle.load(f)
     return model
 
+try:
+    model = load_model()
+except FileNotFoundError:
+    st.error("Error: `GreadientBooster.pkl` file not found in the working directory.")
+    st.stop()
 
-model = load_model()
+# Layout Container
+st.markdown('<div class="main-card">', unsafe_allow_html=True)
+st.markdown('<h1 class="title-text">Classification Predictor</h1>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle-text">Enter feature details to evaluate model output</p>', unsafe_allow_html=True)
 
-# Header Section
-st.markdown(
-    "<h1 class='main-title'>Gradient Boosting Classifier</h1>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "<p class='sub-title'>Provide feature inputs below to generate predictions</p>",
-    unsafe_allow_html=True,
-)
+# Form fields based on model features: ['age', 'gender', 'review', 'education']
+with st.form("prediction_form"):
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        age = st.number_input("Age", min_value=1, max_value=120, value=30, step=1)
+        gender = st.selectbox("Gender", options=["Male", "Female", "Other"])
+    
+    with col2:
+        review = st.selectbox("Review", options=["Poor", "Average", "Good"])
+        education = st.selectbox("Education", options=["School", "UG", "PG"])
+        
+    submit_button = st.form_submit_button("Run Prediction")
 
-# Input Section Inside Styled Container
-st.markdown("<div class='input-anchor'></div>", unsafe_allow_html=True)
-st.subheader("Input Features")
+st.markdown('</div>', unsafe_allow_html=True)
 
-# Creating form inputs matching model schema: age, gender, review, education
-col1, col2 = st.columns(2)
-
-with col1:
-    age = st.number_input(
-        "Age", min_value=1, max_value=120, value=30, step=1, help="Enter age"
-    )
-
-    # Categorical column as 'category' type/select box
-    gender = st.selectbox(
-        "Gender",
-        options=["Male", "Female", "Other"],
-        help="Select gender category",
-    )
-
-with col2:
-    review = st.selectbox(
-        "Review Rating",
-        options=["Poor", "Average", "Good"],
-        help="Select review level",
-    )
-
-    education = st.selectbox(
-        "Education Level",
-        options=["School", "UG", "PG"],
-        help="Select highest education degree",
-    )
-
-# Encoding options if raw strings need mapping to numeric formats
-# (Adjust target values below to match your original training encoding if applicable)
-gender_map = {"Male": 1, "Female": 0, "Other": 2}
-review_map = {"Poor": 0, "Average": 1, "Good": 2}
-education_map = {"School": 0, "UG": 1, "PG": 2}
-
-# Prepare DataFrame ensuring categorical dtypes are explicit
-input_df = pd.DataFrame(
-    [
-        {
-            "age": age,
-            "gender": gender_map[gender],
-            "review": review_map[review],
-            "education": education_map[education],
-        }
-    ]
-)
-
-# Explicitly cast categorical columns to pandas 'category' dtype
-categorical_cols = ["gender", "review", "education"]
-for col in categorical_cols:
-    input_df[col] = input_df[col].astype("category")
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Prediction Logic
-if st.button("Predict Outcome"):
+# Processing Inputs
+if submit_button:
+    # Ensure variables match categorical types expected by preprocessing/model pipelines
+    input_data = pd.DataFrame([{
+        'age': age,
+        'gender': pd.Categorical([gender], categories=["Male", "Female", "Other"])[0],
+        'review': pd.Categorical([review], categories=["Poor", "Average", "Good"])[0],
+        'education': pd.Categorical([education], categories=["School", "UG", "PG"])[0]
+    }])
+    
     try:
-        prediction = model.predict(input_df)[0]
-        probabilities = (
-            model.predict_proba(input_df)[0]
-            if hasattr(model, "predict_proba")
-            else None
-        )
-
+        prediction = model.predict(input_data)[0]
+        
+        # Display Prediction Result
         st.markdown(
-            f"""
-            <div class='result-card'>
-                <h3 style='margin:0;'>Prediction Output</h3>
-                <h1 style='margin:0.5rem 0; font-size: 2.5rem;'>Class {prediction}</h1>
+            f'''
+            <div class="result-card">
+                <h3>Predicted Output: Class {prediction}</h3>
             </div>
-            """,
-            unsafe_allow_html=True,
+            ''', 
+            unsafe_allow_html=True
         )
-
-        if probabilities is not None:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.write("**Class Probabilities:**")
-            prob_df = pd.DataFrame(
-                [probabilities],
-                columns=[f"Class {c}" for c in model.classes_],
-            )
-            st.dataframe(
-                prob_df.style.highlight_max(axis=1, color="#e0e7ff"),
-                use_container_width=True,
-            )
-
     except Exception as e:
-        st.error(f"Error executing prediction: {e}")
+        # Fallback handling for array formatting
+        try:
+            raw_input = np.array([[age, gender, review, education]], dtype=object)
+            prediction = model.predict(raw_input)[0]
+            st.markdown(
+                f'''
+                <div class="result-card">
+                    <h3>Predicted Output: Class {prediction}</h3>
+                </div>
+                ''', 
+                unsafe_allow_html=True
+            )
+        except Exception as err:
+            st.error(f"Prediction Error: {str(err)}")
