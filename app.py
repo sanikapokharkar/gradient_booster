@@ -1,6 +1,6 @@
+from pathlib import Path
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
 
 # Page Configuration
@@ -10,99 +10,56 @@ st.set_page_config(
     layout="centered"
 )
 
-# Load the Trained Model
+# Resolve model path dynamically relative to app.py
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "greadientbooster.pkl"
+
+# Load Trained Model
 @st.cache_resource
 def load_model():
-    return joblib.load("greadientbooster.pkl")
+    if not MODEL_PATH.exists():
+        st.error(f"Model file not found at path: {MODEL_PATH}")
+        st.stop()
+    return joblib.load(MODEL_PATH)
 
 try:
     model = load_model()
 except Exception as e:
-    st.error(f"Error loading 'greadientbooster.pkl': {e}")
+    st.error(f"Error loading model: {e}")
     st.stop()
 
-# Custom CSS with Shadow Effects & Styling
+# Custom UI Styling
 st.markdown("""
     <style>
-    /* Main App Background */
     .stApp {
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-
-    /* Main Container Card */
     .main-card {
         background-color: #ffffff;
         padding: 30px;
         border-radius: 16px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         margin-bottom: 25px;
     }
-
-    /* Title Styling */
     .title-text {
         text-align: center;
         color: #1e293b;
         font-size: 2.2rem;
         font-weight: 700;
-        margin-bottom: 8px;
     }
-
-    .subtitle-text {
-        text-align: center;
-        color: #64748b;
-        font-size: 1rem;
-        margin-bottom: 25px;
-    }
-
-    /* Input Field Labels */
-    label {
-        font-weight: 600 !important;
-        color: #334155 !important;
-    }
-
-    /* Custom Prediction Card Effect */
     .result-card {
         background: #ffffff;
         padding: 20px;
         border-radius: 12px;
         text-align: center;
         box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
-        border: 1px solid #e2e8f0;
         margin-top: 20px;
-    }
-
-    /* Custom Glassmorphism Button Shadow */
-    div.stButton > button {
-        width: 100%;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        color: white;
-        font-size: 1.1rem;
-        font-weight: 600;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.39);
-        transition: all 0.2s ease-in-out;
-    }
-
-    div.stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.54);
-        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-    }
-
-    div.stButton > button:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.39);
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Main UI Structure
 st.markdown('<div class="main-card">', unsafe_allow_html=True)
 st.markdown('<div class="title-text">Model Prediction Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-text">Enter input features below to get real-time class predictions.</div>', unsafe_allow_html=True)
 
 # Input Form
 with st.form("prediction_form"):
@@ -120,10 +77,8 @@ with st.form("prediction_form"):
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Processing and Prediction
+# Generate Predictions
 if submit_button:
-    # 1. Structure the input data into a DataFrame matching expected feature names:
-    # ['age', 'gender', 'review', 'education']
     raw_data = {
         'age': [age],
         'gender': [gender],
@@ -132,22 +87,20 @@ if submit_button:
     }
     input_df = pd.DataFrame(raw_data)
 
-    # 2. Convert categorical columns to 'category' dtype as requested
+    # Convert categorical inputs to 'category' dtype
     categorical_cols = ['gender', 'review', 'education']
     for col in categorical_cols:
         input_df[col] = input_df[col].astype('category')
 
     try:
-        # Generate Prediction
         prediction = model.predict(input_df)[0]
         
-        # Display Results in a Styled Shadow Container
         st.markdown(f"""
             <div class="result-card">
-                <h3 style="color: #64748b; margin-bottom: 5px; font-weight: 500;">Prediction Output</h3>
+                <h3 style="color: #64748b; margin-bottom: 5px;">Prediction Output</h3>
                 <h1 style="color: #2563eb; margin: 0; font-size: 2.5rem;">{prediction}</h1>
             </div>
         """, unsafe_allow_html=True)
 
     except Exception as err:
-        st.error(f"Prediction failed. Ensure categorical features match the exact training encoding. Error: {err}")
+        st.error(f"Prediction failed: {err}")
