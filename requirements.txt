@@ -1,4 +1,5 @@
 streamlit
+streamlit-wsgi
 scikit-learn
 pandas
 numpy
